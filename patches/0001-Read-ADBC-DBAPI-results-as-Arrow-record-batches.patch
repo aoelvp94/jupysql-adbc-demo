@@ -1,0 +1,407 @@
+From 97956c040f78f803c35ac8af4dbf7593660081d7 Mon Sep 17 00:00:00 2001
+From: Aldo Escobar <aoelvp94@users.noreply.github.com>
+Date: Mon, 16 Nov 2026 14:32:08 +0400
+Subject: [PATCH 1/2] Read ADBC DBAPI results as Arrow record batches
+
+---
+ CHANGELOG.md                     |   2 +
+ setup.py                         |   1 +
+ src/sql/connection/__init__.py   |   4 ++
+ src/sql/connection/connection.py |  58 +++++++++++++++
+ src/sql/run/arrowcursor.py       |  81 +++++++++++++++++++++
+ src/sql/run/resultset.py         |  16 +++++
+ src/tests/test_adbc.py           | 119 +++++++++++++++++++++++++++++++
+ 7 files changed, 281 insertions(+)
+ create mode 100644 src/sql/run/arrowcursor.py
+ create mode 100644 src/tests/test_adbc.py
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index b3832ab..dd25154 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -2,6 +2,8 @@
+ 
+ ## 0.11.2dev
+ 
++* [Feature] ADBC DBAPI connections (`adbc_driver_manager.dbapi`) read results as Arrow record batches; `.PolarsDataFrame()` and the new `.ArrowTable()` skip row-by-row conversion
++
+ ## 0.11.1 (2025-03-25)
+ 
+ * [Fix] No longer showing the Slack link in error messages
+diff --git a/setup.py b/setup.py
+index 456ed27..814470b 100644
+--- a/setup.py
++++ b/setup.py
+@@ -43,6 +43,7 @@ DEV = [
+     # tests
+     "duckdb<1.1.0",
+     "duckdb-engine",
++    "adbc-driver-sqlite",
+     "pyodbc",
+     # sql.plot module tests
+     "matplotlib==3.7.2",
+diff --git a/src/sql/connection/__init__.py b/src/sql/connection/__init__.py
+index 4d9dfb1..c1a91ba 100644
+--- a/src/sql/connection/__init__.py
++++ b/src/sql/connection/__init__.py
+@@ -2,8 +2,10 @@ from sql.connection.connection import (
+     ConnectionManager,
+     SQLAlchemyConnection,
+     DBAPIConnection,
++    ADBCConnection,
+     SparkConnectConnection,
+     is_pep249_compliant,
++    is_adbc,
+     is_spark,
+     PLOOMBER_DOCS_LINK_STR,
+     default_alias_for_engine,
+@@ -16,8 +18,10 @@ __all__ = [
+     "ConnectionManager",
+     "SQLAlchemyConnection",
+     "DBAPIConnection",
++    "ADBCConnection",
+     "SparkConnectConnection",
+     "is_pep249_compliant",
++    "is_adbc",
+     "is_spark",
+     "PLOOMBER_DOCS_LINK_STR",
+     "default_alias_for_engine",
+diff --git a/src/sql/connection/connection.py b/src/sql/connection/connection.py
+index 8153a78..c7e06a2 100644
+--- a/src/sql/connection/connection.py
++++ b/src/sql/connection/connection.py
+@@ -18,6 +18,7 @@ from sqlalchemy.exc import (
+ )
+ 
+ from sql.run.sparkdataframe import handle_spark_dataframe
++from sql.run.arrowcursor import ArrowCursor
+ 
+ from IPython.core.error import UsageError
+ import sqlglot
+@@ -256,6 +257,8 @@ class ConnectionManager:
+                 cls.current = SQLAlchemyConnection(
+                     descriptor, config=config, alias=alias
+                 )
++            elif is_adbc(descriptor):
++                cls.current = ADBCConnection(descriptor, config=config, alias=alias)
+             elif is_pep249_compliant(descriptor):
+                 cls.current = DBAPIConnection(descriptor, config=config, alias=alias)
+             elif is_spark(descriptor):
+@@ -1081,6 +1084,61 @@ class DBAPIConnection(AbstractConnection):
+         )
+ 
+ 
++class ADBCConnection(DBAPIConnection):
++    """A connection object for ADBC DBAPI connections (adbc_driver_manager.dbapi)
++
++    Results are read as Arrow record batches, so converting to polars or Arrow
++    does not go through Python rows.
++    """
++
++    def __init__(self, connection, alias=None, config=None):
++        info = _get_adbc_info(connection)
++        vendor = (info.get("vendor_name") or "").lower()
++        default_alias = f"adbc-{vendor}" if vendor else None
++        super().__init__(connection, alias=alias or default_alias, config=config)
++        self._dialect = ADBC_VENDOR_TO_DIALECT.get(vendor, vendor or None)
++        self._driver = info.get("driver_name")
++        self._server_version = info.get("vendor_version")
++
++        # committing after execute would cancel the open Arrow stream (e.g. the
++        # PostgreSQL driver streams via COPY), so use driver-level autocommit
++        if self._requires_manual_commit:
++            try:
++                connection.adbc_connection.set_autocommit(True)
++            except Exception:
++                pass
++            else:
++                self._requires_manual_commit = False
++
++    def raw_execute(self, query, parameters=None, with_=None):
++        return ArrowCursor(super().raw_execute(query, parameters, with_))
++
++    def _get_database_information(self):
++        return {
++            "dialect": self.dialect,
++            "driver": self._driver or self._connection_class_name,
++            "server_version_info": self._server_version,
++        }
++
++
++ADBC_VENDOR_TO_DIALECT = {"postgresql": "postgresql", "sqlite": "sqlite"}
++
++
++def _get_adbc_info(conn):
++    try:
++        return conn.adbc_get_info()
++    except Exception:
++        return {}
++
++
++def is_adbc(conn):
++    """Check if the connection is an ADBC DBAPI connection"""
++    return any(
++        cls.__module__ == "adbc_driver_manager.dbapi" and cls.__name__ == "Connection"
++        for cls in type(conn).__mro__
++    )
++
++
+ class SparkConnectConnection(AbstractConnection):
+     is_dbapi_connection = False
+ 
+diff --git a/src/sql/run/arrowcursor.py b/src/sql/run/arrowcursor.py
+new file mode 100644
+index 0000000..86d48b9
+--- /dev/null
++++ b/src/sql/run/arrowcursor.py
+@@ -0,0 +1,81 @@
++class ArrowCursor:
++    """
++    Wraps an ADBC DBAPI cursor so results are read as Arrow record batches.
++    Rows are only materialized for what is fetched via fetchone/fetchmany/fetchall,
++    and fetch_arrow_table returns every row (including the ones already fetched)
++    without converting to Python objects.
++    """
++
++    def __init__(self, cursor):
++        self._cursor = cursor
++        self._reader = None
++        self._schema = None
++        self._batches = []
++        self._table = None
++        self._buffered = 0
++        self._offset = 0
++        self._exhausted = False
++
++    @property
++    def description(self):
++        return self._cursor.description
++
++    @property
++    def rowcount(self):
++        return self._cursor.rowcount
++
++    def _ensure_reader(self):
++        if self._reader is None and not self._exhausted:
++            if self._cursor.description is None:
++                raise RuntimeError("no results to fetch")
++            self._reader = self._cursor.fetch_record_batch()
++            self._schema = self._reader.schema
++
++    def _read_until(self, n_rows):
++        self._ensure_reader()
++        while not self._exhausted and (n_rows is None or self._buffered < n_rows):
++            try:
++                batch = self._reader.read_next_batch()
++            except StopIteration:
++                self._exhausted = True
++                break
++            if batch.num_rows:
++                self._batches.append(batch)
++                self._buffered += batch.num_rows
++                self._table = None
++
++    def _as_table(self):
++        if self._table is None:
++            import pyarrow as pa
++
++            self._table = pa.Table.from_batches(self._batches, schema=self._schema)
++        return self._table
++
++    def _rows(self, stop):
++        if stop <= self._offset:
++            return []
++        table = self._as_table().slice(self._offset, stop - self._offset)
++        self._offset = stop
++        return list(zip(*(column.to_pylist() for column in table.columns)))
++
++    def fetchone(self):
++        rows = self.fetchmany(1)
++        return rows[0] if rows else None
++
++    def fetchmany(self, size=1):
++        self._read_until(self._offset + size)
++        return self._rows(min(self._offset + size, self._buffered))
++
++    def fetchall(self):
++        self._read_until(None)
++        return self._rows(self._buffered)
++
++    def fetch_arrow_table(self):
++        self._read_until(None)
++        return self._as_table()
++
++    def close(self):
++        if self._reader is not None:
++            self._reader.close()
++            self._reader = None
++        self._cursor.close()
+diff --git a/src/sql/run/resultset.py b/src/sql/run/resultset.py
+index 36b3842..77d325f 100644
+--- a/src/sql/run/resultset.py
++++ b/src/sql/run/resultset.py
+@@ -11,6 +11,7 @@ import warnings
+ from sql.column_guesser import ColumnGuesserMixin
+ from sql.run.csv import CSVWriter, CSVResultDescriptor
+ from sql.run.table import CustomPrettyTable
++from sql.run.arrowcursor import ArrowCursor
+ from sql._current import _config_feedback_all
+ 
+ from sql.exceptions import RuntimeError
+@@ -258,6 +259,16 @@ class ResultSet(ColumnGuesserMixin):
+         polars_dataframe_kwargs["schema"] = self.keys
+         return _convert_to_data_frame(self, "pl", pl.DataFrame, polars_dataframe_kwargs)
+ 
++    def ArrowTable(self):
++        """Returns a pyarrow Table built from the result set."""
++        if isinstance(self.sqlaproxy, ArrowCursor):
++            return self.sqlaproxy.fetch_arrow_table()
++
++        import pyarrow as pa
++
++        columns = list(zip(*self)) or [[] for _ in self.field_names]
++        return pa.table(dict(zip(self.field_names, columns)))
++
+     def pie(self, key_word_sep=" ", title=None, **kwargs):
+         """Generates a pylab pie chart from the result set.
+ 
+@@ -495,6 +506,11 @@ def _convert_to_data_frame(
+     """
+     constructor_kwargs = constructor_kwargs or {}
+ 
++    if converter_name == "pl" and isinstance(result_set.sqlaproxy, ArrowCursor):
++        return constructor(
++            result_set.sqlaproxy.fetch_arrow_table(), **constructor_kwargs
++        )
++
+     # maybe create accessors in the connection objects?
+     if result_set._conn.is_dbapi_connection:
+         native_connection = result_set.sqlaproxy
+diff --git a/src/tests/test_adbc.py b/src/tests/test_adbc.py
+new file mode 100644
+index 0000000..d666ed5
+--- /dev/null
++++ b/src/tests/test_adbc.py
+@@ -0,0 +1,119 @@
++import pytest
++
++from sql.connection import ADBCConnection, ConnectionManager, is_adbc
++from sql.run.arrowcursor import ArrowCursor
++
++adbc_sqlite = pytest.importorskip("adbc_driver_sqlite.dbapi")
++pa = pytest.importorskip("pyarrow")
++pl = pytest.importorskip("polars")
++
++
++@pytest.fixture
++def ip_adbc(ip_empty):
++    ip_empty.run_cell(
++        "import adbc_driver_sqlite.dbapi; conn = adbc_driver_sqlite.dbapi.connect()"
++    )
++    ip_empty.run_cell("%sql conn")
++    ip_empty.run_cell("""%%sql
++CREATE TABLE numbers (n INTEGER, name TEXT, x REAL);
++INSERT INTO numbers
++WITH RECURSIVE s(v) AS (SELECT 1 UNION ALL SELECT v + 1 FROM s WHERE v < 5000)
++SELECT v, 'name-' || v, v * 0.5 FROM s;
++""")
++    yield ip_empty
++    ConnectionManager.close_all()
++
++
++def test_is_adbc():
++    conn = adbc_sqlite.connect()
++    assert is_adbc(conn)
++    conn.close()
++
++
++def test_is_adbc_rejects_sqlite3():
++    import sqlite3
++
++    assert not is_adbc(sqlite3.connect(":memory:"))
++
++
++def test_adbc_connection_metadata(ip_adbc):
++    conn = ConnectionManager.current
++    assert isinstance(conn, ADBCConnection)
++    assert conn.alias == "adbc-sqlite"
++    assert conn.dialect == "sqlite"
++    assert conn._get_database_information()["driver"] == "ADBC SQLite Driver"
++
++
++def test_adbc_resultset_uses_arrow_cursor(ip_adbc):
++    rs = ip_adbc.run_cell("%sql SELECT * FROM numbers ORDER BY n").result
++    assert isinstance(rs.sqlaproxy, ArrowCursor)
++    assert rs._results[:2] == [(1, "name-1", 0.5), (2, "name-2", 1.0)]
++    assert len(rs) == 5000
++    assert list(rs)[-1] == (5000, "name-5000", 2500.0)
++
++
++def test_adbc_arrow_table_includes_fetched_rows(ip_adbc):
++    rs = ip_adbc.run_cell("%sql SELECT * FROM numbers ORDER BY n").result
++    rs.fetchmany(10)
++    table = rs.ArrowTable()
++    assert isinstance(table, pa.Table)
++    assert table.num_rows == 5000
++    assert table.column("n").to_pylist()[:3] == [1, 2, 3]
++
++
++def test_adbc_polars_dataframe(ip_adbc):
++    rs = ip_adbc.run_cell("%sql SELECT * FROM numbers ORDER BY n").result
++    df = rs.PolarsDataFrame()
++    assert df.shape == (5000, 3)
++    assert df.columns == ["n", "name", "x"]
++    assert df.dtypes == [pl.Int64, pl.String, pl.Float64]
++    assert df.row(4999) == (5000, "name-5000", 2500.0)
++
++
++def test_adbc_autopolars(ip_adbc):
++    ip_adbc.run_cell("%config SqlMagic.autopolars = True")
++    df = ip_adbc.run_cell("%sql SELECT n FROM numbers WHERE n <= 3 ORDER BY n").result
++    assert isinstance(df, pl.DataFrame)
++    assert df["n"].to_list() == [1, 2, 3]
++
++
++def test_adbc_display_respects_displaylimit(ip_adbc):
++    ip_adbc.run_cell("%config SqlMagic.displaylimit = 3")
++    rs = ip_adbc.run_cell("%sql SELECT n FROM numbers ORDER BY n").result
++    html = rs._repr_html_()
++    assert "Truncated to" in html
++    assert rs.sqlaproxy._offset == 3
++
++
++def test_adbc_statement_without_results(ip_adbc):
++    rs = ip_adbc.run_cell("%sql CREATE TABLE other (a INTEGER)").result
++    assert rs.keys == []
++    assert list(rs) == []
++
++
++def test_adbc_query_after_ddl(ip_adbc):
++    ip_adbc.run_cell("%sql INSERT INTO numbers VALUES (6000, 'x', 1.0)")
++    rs = ip_adbc.run_cell("%sql SELECT COUNT(*) AS c FROM numbers").result
++    assert list(rs) == [(5001,)]
++
++
++def test_arrow_cursor_fetch_methods():
++    conn = adbc_sqlite.connect()
++    cur = conn.cursor()
++    cur.execute(
++        "WITH RECURSIVE s(v) AS (SELECT 1 UNION ALL SELECT v + 1 FROM s WHERE v < 10)"
++        " SELECT v FROM s"
++    )
++    arrow_cursor = ArrowCursor(cur)
++    assert arrow_cursor.fetchone() == (1,)
++    assert arrow_cursor.fetchmany(3) == [(2,), (3,), (4,)]
++    assert arrow_cursor.fetchall() == [(i,) for i in range(5, 11)]
++    assert arrow_cursor.fetchall() == []
++    assert arrow_cursor.fetch_arrow_table().num_rows == 10
++    arrow_cursor.close()
++    conn.close()
++
++
++def test_resultset_arrow_table_non_adbc(ip_dbapi):
++    table = ip_dbapi.run_cell("%sql SELECT * FROM test").result.ArrowTable()
++    assert table.to_pydict() == {"n": [1, 2], "name": ["foo", "bar"]}
+-- 
+2.47.3
+

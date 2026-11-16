@@ -1,0 +1,594 @@
+{
+  "postgres": {
+    "i2": {
+      "current_py": [
+        "int",
+        "42"
+      ],
+      "adbc_py": [
+        "int",
+        "42"
+      ],
+      "current_polars": "Int64",
+      "adbc_polars": "Int16",
+      "py_match": true,
+      "polars_match": false
+    },
+    "i4": {
+      "current_py": [
+        "int",
+        "42"
+      ],
+      "adbc_py": [
+        "int",
+        "42"
+      ],
+      "current_polars": "Int64",
+      "adbc_polars": "Int32",
+      "py_match": true,
+      "polars_match": false
+    },
+    "i8": {
+      "current_py": [
+        "int",
+        "9007199254740993"
+      ],
+      "adbc_py": [
+        "int",
+        "9007199254740993"
+      ],
+      "current_polars": "Int64",
+      "adbc_polars": "Int64",
+      "py_match": true,
+      "polars_match": true
+    },
+    "f4": {
+      "current_py": [
+        "float",
+        "1.5"
+      ],
+      "adbc_py": [
+        "float",
+        "1.5"
+      ],
+      "current_polars": "Float64",
+      "adbc_polars": "Float32",
+      "py_match": true,
+      "polars_match": false
+    },
+    "f8": {
+      "current_py": [
+        "float",
+        "0.1"
+      ],
+      "adbc_py": [
+        "float",
+        "0.1"
+      ],
+      "current_polars": "Float64",
+      "adbc_polars": "Float64",
+      "py_match": true,
+      "polars_match": true
+    },
+    "dec": {
+      "current_py": [
+        "Decimal",
+        "Decimal('12345678901234.5678')"
+      ],
+      "adbc_py": [
+        "str",
+        "'12345678901234.5678'"
+      ],
+      "current_polars": "Decimal(precision=38, scale=4)",
+      "adbc_polars": "Extension('arrow.opaque', String, '{\"type_name\":\"numeric\",\"vendor_name\":\"PostgreSQL\"}')",
+      "py_match": false,
+      "polars_match": false
+    },
+    "dec_unbounded": {
+      "current_py": [
+        "Decimal",
+        "Decimal('1.23456789012345678901234567890')"
+      ],
+      "adbc_py": [
+        "str",
+        "'1.23456789012345678901234567890'"
+      ],
+      "current_polars": "Decimal(precision=38, scale=29)",
+      "adbc_polars": "Extension('arrow.opaque', String, '{\"type_name\":\"numeric\",\"vendor_name\":\"PostgreSQL\"}')",
+      "py_match": false,
+      "polars_match": false
+    },
+    "ts": {
+      "current_py": [
+        "datetime",
+        "datetime.datetime(2024, 2, 29, 12, 34, 56, 123456)"
+      ],
+      "adbc_py": [
+        "datetime",
+        "datetime.datetime(2024, 2, 29, 12, 34, 56, 123456)"
+      ],
+      "current_polars": "Datetime(time_unit='us', time_zone=None)",
+      "adbc_polars": "Datetime(time_unit='us', time_zone=None)",
+      "py_match": true,
+      "polars_match": true
+    },
+    "tstz": {
+      "current_py": [
+        "datetime",
+        "datetime.datetime(2024, 2, 29, 9, 34, 56, 123456, tzinfo=datetime.timezone.utc)"
+      ],
+      "adbc_py": [
+        "datetime",
+        "datetime.datetime(2024, 2, 29, 9, 34, 56, 123456, tzinfo=zoneinfo.ZoneInfo(key='UTC'))"
+      ],
+      "current_polars": "Datetime(time_unit='us', time_zone='UTC')",
+      "adbc_polars": "Datetime(time_unit='us', time_zone='UTC')",
+      "py_match": false,
+      "polars_match": true
+    },
+    "d": {
+      "current_py": [
+        "date",
+        "datetime.date(2024, 2, 29)"
+      ],
+      "adbc_py": [
+        "date",
+        "datetime.date(2024, 2, 29)"
+      ],
+      "current_polars": "Date",
+      "adbc_polars": "Date",
+      "py_match": true,
+      "polars_match": true
+    },
+    "t": {
+      "current_py": [
+        "time",
+        "datetime.time(12, 34, 56, 500000)"
+      ],
+      "adbc_py": [
+        "time",
+        "datetime.time(12, 34, 56, 500000)"
+      ],
+      "current_polars": "Time",
+      "adbc_polars": "Time",
+      "py_match": true,
+      "polars_match": true
+    },
+    "iv": {
+      "current_py": [
+        "timedelta",
+        "datetime.timedelta(days=1, seconds=7203)"
+      ],
+      "adbc_py": [
+        "timedelta",
+        "datetime.timedelta(days=1, seconds=7203)"
+      ],
+      "current_polars": "Duration(time_unit='us')",
+      "adbc_polars": "Duration(time_unit='us')",
+      "py_match": true,
+      "polars_match": true
+    },
+    "b": {
+      "current_py": [
+        "bool",
+        "True"
+      ],
+      "adbc_py": [
+        "bool",
+        "True"
+      ],
+      "current_polars": "Boolean",
+      "adbc_polars": "Boolean",
+      "py_match": true,
+      "polars_match": true
+    },
+    "s": {
+      "current_py": [
+        "str",
+        "'héllo'"
+      ],
+      "adbc_py": [
+        "str",
+        "'héllo'"
+      ],
+      "current_polars": "String",
+      "adbc_polars": "String",
+      "py_match": true,
+      "polars_match": true
+    },
+    "ch": {
+      "current_py": [
+        "str",
+        "'ab  '"
+      ],
+      "adbc_py": [
+        "str",
+        "'ab  '"
+      ],
+      "current_polars": "String",
+      "adbc_polars": "String",
+      "py_match": true,
+      "polars_match": true
+    },
+    "blob": {
+      "current_py": [
+        "memoryview",
+        "<memory at 0x7f6e712b2740>"
+      ],
+      "adbc_py": [
+        "bytes",
+        "b'\\xde\\xad\\xbe\\xef'"
+      ],
+      "current_polars": "Object",
+      "adbc_polars": "Binary",
+      "py_match": false,
+      "polars_match": false
+    },
+    "jsonb": {
+      "current_py": [
+        "dict",
+        "{'a': 1}"
+      ],
+      "adbc_py": [
+        "str",
+        "'{\"a\": 1}'"
+      ],
+      "current_polars": "Struct({'a': Int64})",
+      "adbc_polars": "Extension('arrow.json', String, '')",
+      "py_match": false,
+      "polars_match": false
+    },
+    "uuid": {
+      "current_py": [
+        "UUID",
+        "UUID('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11')"
+      ],
+      "adbc_py": [
+        "UUID",
+        "UUID('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11')"
+      ],
+      "current_polars": "Object",
+      "adbc_polars": "Binary",
+      "py_match": true,
+      "polars_match": false
+    },
+    "arr": {
+      "current_py": [
+        "list",
+        "[1, 2, 3]"
+      ],
+      "adbc_py": [
+        "list",
+        "[1, 2, 3]"
+      ],
+      "current_polars": "List(Int64)",
+      "adbc_polars": "List(Int32)",
+      "py_match": true,
+      "polars_match": false
+    },
+    "null_int": {
+      "current_py": [
+        "NoneType",
+        "None"
+      ],
+      "adbc_py": [
+        "NoneType",
+        "None"
+      ],
+      "current_polars": "Null",
+      "adbc_polars": "Int32",
+      "py_match": true,
+      "polars_match": false
+    },
+    "null_text": {
+      "current_py": [
+        "NoneType",
+        "None"
+      ],
+      "adbc_py": [
+        "NoneType",
+        "None"
+      ],
+      "current_polars": "Null",
+      "adbc_polars": "String",
+      "py_match": true,
+      "polars_match": false
+    }
+  },
+  "duckdb": {
+    "i2": {
+      "current_py": [
+        "int",
+        "42"
+      ],
+      "adbc_py": [
+        "int",
+        "42"
+      ],
+      "current_polars": "Int64",
+      "adbc_polars": "Int16",
+      "py_match": true,
+      "polars_match": false
+    },
+    "i4": {
+      "current_py": [
+        "int",
+        "42"
+      ],
+      "adbc_py": [
+        "int",
+        "42"
+      ],
+      "current_polars": "Int64",
+      "adbc_polars": "Int32",
+      "py_match": true,
+      "polars_match": false
+    },
+    "i8": {
+      "current_py": [
+        "int",
+        "9007199254740993"
+      ],
+      "adbc_py": [
+        "int",
+        "9007199254740993"
+      ],
+      "current_polars": "Int64",
+      "adbc_polars": "Int64",
+      "py_match": true,
+      "polars_match": true
+    },
+    "u128": {
+      "current_py": [
+        "int",
+        "340282366920938463463374607431768211455"
+      ],
+      "adbc_py": [
+        "Decimal",
+        "Decimal('-1')"
+      ],
+      "current_polars": "UInt128",
+      "adbc_polars": "Decimal(precision=38, scale=0)",
+      "py_match": false,
+      "polars_match": false
+    },
+    "f4": {
+      "current_py": [
+        "float",
+        "1.5"
+      ],
+      "adbc_py": [
+        "float",
+        "1.5"
+      ],
+      "current_polars": "Float64",
+      "adbc_polars": "Float32",
+      "py_match": true,
+      "polars_match": false
+    },
+    "f8": {
+      "current_py": [
+        "float",
+        "0.1"
+      ],
+      "adbc_py": [
+        "float",
+        "0.1"
+      ],
+      "current_polars": "Float64",
+      "adbc_polars": "Float64",
+      "py_match": true,
+      "polars_match": true
+    },
+    "dec": {
+      "current_py": [
+        "Decimal",
+        "Decimal('12345678901234.5678')"
+      ],
+      "adbc_py": [
+        "Decimal",
+        "Decimal('12345678901234.5678')"
+      ],
+      "current_polars": "Decimal(precision=38, scale=4)",
+      "adbc_polars": "Decimal(precision=18, scale=4)",
+      "py_match": true,
+      "polars_match": false
+    },
+    "dec38": {
+      "current_py": [
+        "Decimal",
+        "Decimal('1.2345678901234567890123456789')"
+      ],
+      "adbc_py": [
+        "Decimal",
+        "Decimal('1.2345678901234567890123456789')"
+      ],
+      "current_polars": "Decimal(precision=38, scale=28)",
+      "adbc_polars": "Decimal(precision=38, scale=28)",
+      "py_match": true,
+      "polars_match": true
+    },
+    "ts": {
+      "current_py": [
+        "datetime",
+        "datetime.datetime(2024, 2, 29, 12, 34, 56, 123456)"
+      ],
+      "adbc_py": [
+        "datetime",
+        "datetime.datetime(2024, 2, 29, 12, 34, 56, 123456)"
+      ],
+      "current_polars": "Datetime(time_unit='us', time_zone=None)",
+      "adbc_polars": "Datetime(time_unit='us', time_zone=None)",
+      "py_match": true,
+      "polars_match": true
+    },
+    "tstz": {
+      "current_py": [
+        "datetime",
+        "datetime.datetime(2024, 2, 29, 13, 34, 56, 123456, tzinfo=<DstTzInfo 'Asia/Tbilisi' +04+4:00:00 STD>)"
+      ],
+      "adbc_py": [
+        "datetime",
+        "datetime.datetime(2024, 2, 29, 13, 34, 56, 123456, tzinfo=zoneinfo.ZoneInfo(key='Asia/Tbilisi'))"
+      ],
+      "current_polars": "Datetime(time_unit='us', time_zone='Asia/Tbilisi')",
+      "adbc_polars": "Datetime(time_unit='us', time_zone='Asia/Tbilisi')",
+      "py_match": false,
+      "polars_match": true
+    },
+    "d": {
+      "current_py": [
+        "date",
+        "datetime.date(2024, 2, 29)"
+      ],
+      "adbc_py": [
+        "date",
+        "datetime.date(2024, 2, 29)"
+      ],
+      "current_polars": "Date",
+      "adbc_polars": "Date",
+      "py_match": true,
+      "polars_match": true
+    },
+    "t": {
+      "current_py": [
+        "time",
+        "datetime.time(12, 34, 56, 500000)"
+      ],
+      "adbc_py": [
+        "time",
+        "datetime.time(12, 34, 56, 500000)"
+      ],
+      "current_polars": "Time",
+      "adbc_polars": "Time",
+      "py_match": true,
+      "polars_match": true
+    },
+    "iv": {
+      "current_py": [
+        "timedelta",
+        "datetime.timedelta(days=1, seconds=7203)"
+      ],
+      "adbc_py": [
+        "timedelta",
+        "datetime.timedelta(days=1, seconds=7203)"
+      ],
+      "current_polars": "Duration(time_unit='us')",
+      "adbc_polars": "Duration(time_unit='us')",
+      "py_match": true,
+      "polars_match": true
+    },
+    "b": {
+      "current_py": [
+        "bool",
+        "True"
+      ],
+      "adbc_py": [
+        "bool",
+        "True"
+      ],
+      "current_polars": "Boolean",
+      "adbc_polars": "Boolean",
+      "py_match": true,
+      "polars_match": true
+    },
+    "s": {
+      "current_py": [
+        "str",
+        "'héllo'"
+      ],
+      "adbc_py": [
+        "str",
+        "'héllo'"
+      ],
+      "current_polars": "String",
+      "adbc_polars": "String",
+      "py_match": true,
+      "polars_match": true
+    },
+    "blob": {
+      "current_py": [
+        "bytes",
+        "b'\\xde\\xad'"
+      ],
+      "adbc_py": [
+        "bytes",
+        "b'\\xde\\xad'"
+      ],
+      "current_polars": "Binary",
+      "adbc_polars": "Binary",
+      "py_match": true,
+      "polars_match": true
+    },
+    "uuid": {
+      "current_py": [
+        "UUID",
+        "UUID('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11')"
+      ],
+      "adbc_py": [
+        "str",
+        "'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'"
+      ],
+      "current_polars": "Object",
+      "adbc_polars": "String",
+      "py_match": false,
+      "polars_match": false
+    },
+    "arr": {
+      "current_py": [
+        "list",
+        "[1, 2, 3]"
+      ],
+      "adbc_py": [
+        "list",
+        "[1, 2, 3]"
+      ],
+      "current_polars": "List(Int64)",
+      "adbc_polars": "List(Int32)",
+      "py_match": true,
+      "polars_match": false
+    },
+    "st": {
+      "current_py": [
+        "dict",
+        "{'k': 1, 'v': 'x'}"
+      ],
+      "adbc_py": [
+        "dict",
+        "{'k': 1, 'v': 'x'}"
+      ],
+      "current_polars": "Struct({'k': Int64, 'v': String})",
+      "adbc_polars": "Struct({'k': Int32, 'v': String})",
+      "py_match": true,
+      "polars_match": false
+    },
+    "m": {
+      "current_py": [
+        "dict",
+        "{'a': 1}"
+      ],
+      "adbc_py": [
+        "list",
+        "[('a', 1)]"
+      ],
+      "current_polars": "Struct({'a': Int64})",
+      "adbc_polars": "Map(String, Int32)",
+      "py_match": false,
+      "polars_match": false
+    },
+    "null_int": {
+      "current_py": [
+        "NoneType",
+        "None"
+      ],
+      "adbc_py": [
+        "NoneType",
+        "None"
+      ],
+      "current_polars": "Null",
+      "adbc_polars": "Int32",
+      "py_match": true,
+      "polars_match": false
+    }
+  }
+}
