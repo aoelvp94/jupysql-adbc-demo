@@ -98,7 +98,7 @@ Full run on commit `97956c0`; three ADBC cases were re-run on `cf5b447` (interva
 | postgres | narrow_1m | 0.881 | 0.147 | 6.0x | 329 | 36 |
 | postgres | wide_1m | 4.667 | 0.728 | 6.4x | 1172 | 243 |
 
-`.PolarsDataFrame()` over ADBC is within a few milliseconds of bare `fetch_arrow_table()`: 29–78x faster than today's SQLAlchemy path on DuckDB and 5.5–6.4x on PostgreSQL, with 3–9x lower peak memory (Postgres wide: 1172 MB → 243 MB). Materializing every row as Python tuples remains slow (wide: 4.4 s DuckDB, 5.2 s Postgres). Full write-up: [`BENCH.md`](BENCH.md).
+`.PolarsDataFrame()` over ADBC is within a few milliseconds of bare `fetch_arrow_table()`: 29–78x faster than today's SQLAlchemy path on DuckDB and 5.5–6.4x on PostgreSQL, with 3–9x lower peak memory (Postgres wide: 1172 MB → 243 MB). Materializing every row as Python tuples remains slow (wide: 4.4 s DuckDB, 5.2 s Postgres). Charts of the same `.PolarsDataFrame()` comparison: [time](docs/speedup.png), [peak memory](docs/peak-memory.png). Full write-up: [`BENCH.md`](BENCH.md).
 
 ## Postgres COPY / `commit()` fix
 
