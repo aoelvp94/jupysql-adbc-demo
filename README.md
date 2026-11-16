@@ -7,6 +7,13 @@ Upstream base: [ploomber/jupysql](https://github.com/ploomber/jupysql) [`e4b695a
 1. `97956c0` — Read ADBC DBAPI results as Arrow record batches
 2. `cf5b447` — Convert ADBC interval columns to durations for rows and polars
 
+
+## Open in Colab
+
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aoelvp94/jupysql-adbc-demo/blob/main/colab/jupysql_adbc_colab.ipynb)
+
+[`colab/jupysql_adbc_colab.ipynb`](colab/jupysql_adbc_colab.ipynb) is a DuckDB-only notebook: it installs JupySQL from the `adbc-arrow-results` branch, builds the same narrow and wide tables as `setup_data.py` (100k and 1M rows), and times `.PolarsDataFrame()` on the current SQLAlchemy path versus the ADBC Arrow path. Colab hardware is shared, so the timings will differ from the local README numbers below (the README also has PostgreSQL numbers from a local Docker run; those are not repeated in Colab). The default install URL is `git+https://github.com/aoelvp94/jupysql@adbc-arrow-results`, so that branch has to exist on the fork before the notebook can be opened from scratch.
+
 ## Layout
 
 - `patches/0001-*.patch`, `patches/0002-*.patch`: `git format-patch` of the two commits
@@ -14,6 +21,7 @@ Upstream base: [ploomber/jupysql](https://github.com/ploomber/jupysql) [`e4b695a
 - `bench.py`, `parity.py`, `setup_data.py`: benchmark, type-parity check, and data setup
 - `BENCH.md`, `bench.json`, `parity.json`: results from the run below
 - `demo.ipynb`: short notebook (DuckDB + Postgres over ADBC)
+- `colab/jupysql_adbc_colab.ipynb`: DuckDB-only Google Colab notebook with an [Open in Colab](https://colab.research.google.com/github/aoelvp94/jupysql-adbc-demo/blob/main/colab/jupysql_adbc_colab.ipynb) badge
 - `docker-compose.yml`: PostgreSQL 17 used by the Postgres bench (`localhost:55433`, user `postgres`, password `bench`, database `bench`)
 - `pyproject.toml`, `uv.lock`: bench environment (`uv` / `uvx`)
 
