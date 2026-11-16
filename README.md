@@ -26,11 +26,11 @@ git clone https://github.com/ploomber/jupysql.git
 git -C jupysql checkout e4b695ac8cf40849bd4ce98388432a1875ad1828
 
 # preferred: apply the two commits, preserving messages
-git -C jupysql am ../patches/0001-*.patch ../patches/0002-*.patch
+git -C jupysql am "$PWD"/patches/0001-*.patch "$PWD"/patches/0002-*.patch
 
 # alternative: one combined diff
-# git -C jupysql apply --check ../patches/jupysql-adbc.patch
-# git -C jupysql apply ../patches/jupysql-adbc.patch
+# git -C jupysql apply --check "$PWD"/patches/jupysql-adbc.patch
+# git -C jupysql apply "$PWD"/patches/jupysql-adbc.patch
 ```
 
 ## Run the benchmark with uv
